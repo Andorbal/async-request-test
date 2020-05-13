@@ -44,6 +44,23 @@ resources:
         Endpoint: !Ref todo-create-queue
         Region: ${self:provider.region}
         TopicArn: !Ref command-sns
+    read-model-table:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: dev-read-model
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+
 
 plugins:
   - serverless-dynamodb-local
