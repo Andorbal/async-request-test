@@ -1,0 +1,74 @@
+# serverless.yml
+
+service: async-request-backend
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev # Set the default stage used. Default is dev
+  region: us-east-1 # Overwrite the default region used. Default is us-east-1
+  memorySize: 512 # Overwrite the default memory size. Default is 1024
+  stackTags: # Optional CF stack tags
+    key: learning
+  
+functions:
+  todo-create: 
+    handler: src/todo.handler
+    events:
+      - http: put api/todo
+  todo-create-command-handler:
+    handler: src/todo.command
+    events: 
+      - sns: todo-create
+  socket-connection:
+    handler: src/socket.handler
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $disconnect
+resources:
+  Resources:
+    command-sns:
+      Type: AWS::SNS::Topic
+      Properties:
+        
+    todo-create-queue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: todo-create-queue
+    todo-command-subscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Protocol: sqs
+        Endpoint: !Ref todo-create-queue
+        Region: ${self:provider.region}
+        TopicArn: !Ref command-sns
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline-sns
+  - serverless-offline-sqs
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    port: 4000
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 4566
+      migrate: true
+      noStart: true
+  serverless-offline-sns:
+    port: 4002
+    debug: true
+  serverless-offline-sqs:
+    autoCreate: true                 # create queue if not exists
+    apiVersion: '2012-11-05'
+    endpoint: http://0.0.0.0:4566
+    region: ${self:provider.region}
+    accessKeyId: root
+    secretAccessKey: root
+    skipCacheInvalidation: false
