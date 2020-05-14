@@ -20,6 +20,18 @@ functions:
     handler: src/todo.command
     events: 
       - sns: todo-create
+  read-model-update:
+    handler: src/readModel/index.update
+    events:
+      - sns:
+          topicName: events
+          filterPolicy:
+            entity:
+              - todo
+  notify-listeners:
+    handler: src/socket.notify
+    events:
+      - sns: events
   socket-connection:
     handler: src/socket.handler
     events:
@@ -27,6 +39,28 @@ functions:
           route: $connect
       - websocket:
           route: $disconnect
+  log-event-save:
+    handler: src/events.save
+  log-event-notify:
+    handler: src/events.notify
+
+stepFunctions:
+  stateMachines:
+    log-event:
+      definition:
+        Comment: Save an event and publish it
+        StartAt: SaveToDatabase
+        States:
+          SaveToDatabase:
+            Type: Task
+            Resource: 
+              Fn::GetAtt: [log-event-save, Arn]
+            Next: Publish
+          Publish:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [log-event-notify, Arn]
+            End: true
 resources:
   Resources:
     command-sns:
@@ -61,11 +95,12 @@ resources:
         BillingMode: PAY_PER_REQUEST
 
 
-
 plugins:
   - serverless-dynamodb-local
   - serverless-offline-sns
   - serverless-offline-sqs
+  - serverless-step-functions
+  - serverless-offline-step-functions
   - serverless-offline
 
 custom:
@@ -80,7 +115,11 @@ custom:
       noStart: true
   serverless-offline-sns:
     port: 4002
-    debug: true
+    #debug: true
+
+  serverless-offline-step-functions:
+   # resourcePrefix: ${self:service}-${self:provider.stage}-
+    port: 8014
   serverless-offline-sqs:
     autoCreate: true                 # create queue if not exists
     apiVersion: '2012-11-05'

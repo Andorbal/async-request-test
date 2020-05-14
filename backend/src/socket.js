@@ -1,4 +1,5 @@
 const AWS = require("aws-sdk")
+const connectionPrefix = "CONNECTION-";
 
 // Create the DynamoDB service object
 var ddb = new AWS.DynamoDB({
@@ -12,8 +13,8 @@ const saveConnection = async connectionId => {
     const params = {
       TableName: 'dev-read-model',
       Item: {
-        'PK': { S: "CONNECTION" },
-        'SK': { S: connectionId },
+        'PK': { S: "CUSTOMER-1" },
+        'SK': { S: connectionPrefix + connectionId },
       }
     };
     console.dir(params);
@@ -28,8 +29,8 @@ const removeConnection = async connectionId => {
   await ddb.deleteItem({
     TableName: 'dev-read-model',
     Item: {
-      'PK': { S: "CONNECTION" },
-      'SK': { S: connectionId },
+      'PK': { S: "CUSTOMER-1" },
+      'SK': { S: connectionPrefix + connectionId },
     }
   }).promise()
 }
@@ -38,14 +39,15 @@ const getConnections = async () => {
   try {
     const response = await ddb.query({
       ExpressionAttributeValues: {
-        ':PK': { S: "CONNECTION" },
+        ':PK': { S: "CUSTOMER-1" },
+        ':SK': { S: connectionPrefix }
       },
-      KeyConditionExpression: 'PK = :PK',
+      KeyConditionExpression: 'PK = :PK and begins_with(SK, :SK)',
       TableName: 'dev-read-model'
     }).promise();
 
     console.dir(response, { depth: null });
-    return response.Items.map(x => x.SK.S);
+    return response.Items.map(x => x.SK.S.replace(connectionPrefix, ""));
   } catch (err) {
     console.log("ERRRO", err)
   }
@@ -70,6 +72,21 @@ const handler = async (event, context) => {
       return;
     default:
       console.log("NOOOOOOOOOOOOOO", event.requestContext.routeKey)
+  }
+}
+
+const notify = async (event, context) => {
+  console.log("NOTIFY -- Notify all websockets of the success")
+  console.dir(event);
+
+  console.log(`    Got ${event.Records.length} message(s)`);
+  console.dir(event, { depth: null })
+
+  for (let record of event.Records) {
+    console.dir(record, { depth: null })
+    const { entityId, requestId, title } = JSON.parse(record.Sns.Message);
+
+    await send({ data: { entityId, requestId, title, result: "success" } });
   }
 }
 
@@ -101,5 +118,8 @@ const sendToConnection = async (message, connectionId) => {
   }
 }
 
-module.exports.send = send;
-module.exports.handler = handler;
+module.exports = {
+  send,
+  notify,
+  handler,
+}

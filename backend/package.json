@@ -4,17 +4,21 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npx sls offline",
+    "start": "npx concurrently \"npx sls offline start\" \"DYNAMO_ENDPOINT=http://localhost:4566 npx dynamodb-admin\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "concurrently": "^5.2.0",
+    "dynamodb-admin": "^4.0.0",
     "serverless": "^1.70.0",
     "serverless-dynamodb-local": "^0.2.39",
     "serverless-offline": "^5.12.1",
     "serverless-offline-sns": "^0.68.0",
-    "serverless-offline-sqs": "^3.1.3"
+    "serverless-offline-sqs": "^3.1.3",
+    "serverless-offline-step-functions": "^1.2.6",
+    "serverless-step-functions": "^2.19.0"
   },
   "dependencies": {
     "uuid": "^8.0.0"
