@@ -12,7 +12,7 @@
   "devDependencies": {
     "concurrently": "^5.2.0",
     "dynamodb-admin": "^4.0.0",
-    "serverless": "^1.70.0",
+    "serverless": "^3.25.1",
     "serverless-dynamodb-local": "^0.2.39",
     "serverless-offline": "^5.12.1",
     "serverless-offline-sns": "^0.68.0",
